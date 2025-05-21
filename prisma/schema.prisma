@@ -1,0 +1,104 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgres"
+    url      = env("DATABASE_URL")
+}
+
+enum Role {
+    Admin
+    Relawan
+}
+
+model User {
+    id                 Int                @id @default(autoincrement())
+    nama               String
+    email              String             @unique
+    password           String
+    total_points       Int?               @default(0)
+    foto               String?
+    alamat             String?
+    createdAt          DateTime           @default(now())
+    updatedAt          DateTime           @default(now()) @updatedAt
+    accessToken        String?            @db.VarChar(1000)
+    refreshToken       String?            @db.VarChar(1000)
+    role               Role
+    volunteers         Volunteer[]  
+    skills             UserSkill[]  
+}
+
+model Event {
+    id                 Int                @id @default(autoincrement()) 
+    title              String             
+    location           String             
+    start_date         DateTime           
+    end_date           DateTime           
+    description        String             @db.Text 
+    requirements       String             @db.Text
+    organizer          String             
+    organizer_logo     String             // Tambahkan kolom ini
+    point_reward       Int                
+    max_volunteers     Int                
+    image_url          String                          
+    createdAt          DateTime           @default(now())
+    updatedAt          DateTime           @default(now()) @updatedAt 
+    volunteers         Volunteer[]
+    skills             EventSkill[]       
+}
+
+model Volunteer {
+    id                 Int                @id @default(autoincrement()) 
+    user_id            Int                
+    event_id           Int                
+    status             VolunteerStatus    @default(Mendatang)
+    marked_done_at     DateTime?          
+    created_at         DateTime           @default(now())
+    User               User               @relation(fields: [user_id], references: [id])
+    Event              Event              @relation(fields: [event_id], references: [id])
+    Reports            Reports[]
+}
+
+enum VolunteerStatus {
+    Mendatang
+    Selesai
+}
+
+model Reports {
+    id                 Int                @id @default(autoincrement())            
+    volunteer_id       Int                
+    contribution       String             @db.Text
+    feedback           String             @db.Text
+    photo_url          String   
+    created_at         DateTime           @default(now())
+    Volunteer          Volunteer          @relation(fields: [volunteer_id], references: [id])
+}
+
+model Skill {
+    id                 Int                @id @default(autoincrement())
+    name               String             @unique
+    users              UserSkill[]          
+    events             EventSkill[]             
+}
+
+model UserSkill {
+  id        Int    @id @default(autoincrement())
+  user      User   @relation(fields: [userId], references: [id])
+  userId    Int
+  skill     Skill  @relation(fields: [skillId], references: [id])
+  skillId   Int
+
+  @@unique([userId, skillId])
+}
+
+model EventSkill {
+    id                 Int                @id @default(autoincrement())
+    event_id           Int
+    skill_id           Int
+    assigned_at        DateTime           @default(now())
+    Event              Event              @relation(fields: [event_id], references: [id])
+    Skill              Skill              @relation(fields: [skill_id], references: [id])
+
+    @@unique([event_id, skill_id])
+}
