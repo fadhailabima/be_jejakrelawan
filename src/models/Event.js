@@ -267,50 +267,35 @@ const createVolunteer = async (eventId, userId) => {
 
 const getUpcomingEvents = async (userId) => {
   try {
-    const today = new Date();
-    const todayWIB = new Date(
-      today.toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
-    );
-
-    console.log("Today's date in WIB:", todayWIB); // Log tanggal WIB
-
     const events = await prisma.event.findMany({
       where: {
-        start_date: {
-          gte: todayWIB, // Filter event dengan start_date >= hari ini
-        },
         volunteers: {
           some: {
-            user_id: userId, // Filter event di mana user adalah volunteer
+            user_id: userId,
           },
         },
       },
       include: {
-        skills: {
-          select: {
-            Skill: {
-              select: {
-                name: true, // Ambil nama skill
-              },
-            },
-          },
-        },
         volunteers: {
           where: {
-            user_id: userId, // Ambil data volunteer untuk user tertentu
+            user_id: userId,
           },
           select: {
-            status: true, // Ambil status volunteer
+            status: true,
+            Reports: {
+              select: {
+                id: true,
+              },
+            },
           },
         },
       },
     });
 
-    console.log("Fetched events:", events); // Log hasil query
     return events;
   } catch (error) {
-    console.error("Error fetching events:", error.stack); // Log stack trace
-    throw new Error("Failed to fetch events.");
+    console.error("Error fetching upcoming events:", error.message);
+    throw new Error("Failed to fetch upcoming events.");
   }
 };
 
@@ -345,6 +330,46 @@ const updateVolunteerStatusToSelesai = async (eventId, userId) => {
   }
 };
 
+const createReportFromUpcomingEvents = async (eventId, userId, reportData) => {
+  try {
+    const volunteer = await prisma.volunteer.findFirst({
+      where: {
+        event_id: eventId,
+        user_id: userId,
+      },
+    });
+
+    if (!volunteer) {
+      throw new Error("Volunteer not found for the given eventId and userId.");
+    }
+    const existingReport = await prisma.reports.findFirst({
+      where: {
+        volunteer_id: volunteer.id,
+      },
+    });
+
+    if (existingReport) {
+      throw new Error("Report already exists for this volunteer.");
+    }
+
+    // Buat laporan baru
+    const newReport = await prisma.reports.create({
+      data: {
+        volunteer_id: volunteer.id,
+        ...reportData,
+      },
+    });
+
+    return {
+      message: "Report created successfully.",
+      report: newReport,
+    };
+  } catch (error) {
+    console.error("Error creating report:", error.message);
+    throw new Error(error.message || "Failed to create report.");
+  }
+};
+
 module.exports = {
   createEvent,
   getAllEvents,
@@ -353,4 +378,5 @@ module.exports = {
   createVolunteer,
   getUpcomingEvents,
   updateVolunteerStatusToSelesai,
+  createReportFromUpcomingEvents,
 };

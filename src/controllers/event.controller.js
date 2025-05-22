@@ -6,6 +6,7 @@ const {
   createVolunteer,
   getUpcomingEvents,
   updateVolunteerStatusToSelesai,
+  createReportFromUpcomingEvents,
 } = require("../models/Event");
 const authService = require("../services/authService");
 
@@ -127,11 +128,9 @@ const createVolunteerController = async (req, res) => {
   }
 
   try {
-    // Ambil data user dari token
     const user = await authService.getCurrentUserData(accessToken);
-    const userId = user.id; // Ambil userId dari data user
+    const userId = user.id;
 
-    // Panggil fungsi untuk membuat volunteer
     const volunteer = await createVolunteer(eventId, userId);
     res
       .status(201)
@@ -162,13 +161,12 @@ const updateVolunteerStatusToSelesaiController = async (req, res) => {
   const { id: eventId } = req.params;
   const userId = req.user.id;
   try {
-    // Panggil fungsi untuk update status volunteer
     const result = await updateVolunteerStatusToSelesai(
       parseInt(eventId),
       parseInt(userId)
     );
 
-    res.status(200).json(result); // Kirim respons sukses
+    res.status(200).json(result);
   } catch (error) {
     console.error(
       "Error in updateVolunteerStatusToSelesaiController:",
@@ -180,6 +178,33 @@ const updateVolunteerStatusToSelesaiController = async (req, res) => {
     });
   }
 };
+
+const createReportController = async (req, res) => {
+  const { eventId } = req.params;
+  const userId = req.user.id;
+  const reportData = req.body;
+
+  try {
+    if (req.file && req.file.path) {
+      reportData.photo_url = req.file.path;
+    }
+
+    const result = await createReportFromUpcomingEvents(
+      parseInt(eventId),
+      parseInt(userId),
+      reportData
+    );
+
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Error in createReportController:", error.message);
+    res.status(500).json({
+      error: "Failed to create report.",
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   createEventController,
   getAllEventsController,
@@ -188,4 +213,5 @@ module.exports = {
   createVolunteerController,
   getUpcomingEventsController,
   updateVolunteerStatusToSelesaiController,
+  createReportController,
 };

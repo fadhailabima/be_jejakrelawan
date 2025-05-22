@@ -8,6 +8,7 @@ const {
   createVolunteerController,
   getUpcomingEventsController,
   updateVolunteerStatusToSelesaiController,
+  createReportController,
 } = require("../controllers/event.controller");
 
 const { authenticateToken } = require("../middlewares/role.middleware");
@@ -24,14 +25,20 @@ router.post(
 );
 
 router.get("/", authenticateToken, getAllEventsController);
+router.get("/upcoming", authenticateToken, getUpcomingEventsController);
 router.get("/user-skills", authenticateToken, getEventsByUserSkillsController);
 router.post("/:id/volunteer", authenticateToken, createVolunteerController);
-router.get("/upcoming", authenticateToken, getUpcomingEventsController);
 router.put(
   "/:id/volunteer/selesai",
   authenticateToken,
   updateVolunteerStatusToSelesaiController
 );
 router.get("/:id", authenticateToken, getEventByIdController);
+router.post(
+  "/:eventId/report",
+  authenticateToken,
+  upload.single("photo"),
+  createReportController
+);
 
 module.exports = router;
